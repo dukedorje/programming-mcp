@@ -1,29 +1,29 @@
 import { z } from "zod";
 import { callAIProvider } from "../common/apiClient.js";
 import { getDefaultProvider, type AIProvider, type ReasoningEffort } from "../common/providerConfig.js";
-import { ARCHITECT_SYSTEM_PROMPT } from "../prompts/architectPrompts.js";
+import { CODEADVICE_SYSTEM_PROMPT } from "../prompts/codeadvicePrompts.js";
 
 /**
- * Architect tool
- *   - Calls an AI model (xAI Grok or OpenAI o3) to generate comprehensive architectural reviews
- *   - Input: 'task' (description of the task), 'code' (one or more code files concatenated)
- *   - Provides detailed analysis with executive summary, architectural overview, and prioritized action plans
+ * CodeAdvice tool
+ *   - Calls an AI model (xAI Grok or OpenAI o3) to provide quick, focused coding guidance
+ *   - Input: 'task' (description of the problem), 'code' (relevant code snippet)
+ *   - Provides immediate, actionable advice for specific coding problems
  */
 
-export const architectToolName = "architect";
-export const architectToolDescription =
-  "Conducts comprehensive architectural reviews and generates detailed improvement plans for codebases.";
+export const codeAdviceToolName = "code-advice";
+export const codeAdviceToolDescription =
+  "Provides quick, focused coding guidance and immediate solutions for specific problems.";
 
-export const ArchitectToolSchema = z.object({
+export const CodeAdviceToolSchema = z.object({
   task: z.string().min(1, "Task description is required."),
   code: z
     .string()
-    .min(1, "Code string is required (one or more files concatenated)."),
+    .min(1, "Code string is required."),
   reasoning_effort: z
     .enum(["low", "medium", "high"])
     .optional()
     .describe(
-      "How hard the model should think (low/medium/high). High uses more reasoning tokens but provides better analysis."
+      "How hard the model should think (low/medium/high). Defaults to medium for quick advice."
     ),
   provider: z
     .enum(["xai", "openai"])
@@ -35,22 +35,22 @@ export const ArchitectToolSchema = z.object({
 
 
 
-export async function runArchitectTool(
-  args: z.infer<typeof ArchitectToolSchema>
+export async function runCodeAdviceTool(
+  args: z.infer<typeof CodeAdviceToolSchema>
 ) {
   const {
     task,
     code,
-    reasoning_effort = "high",
+    reasoning_effort = "medium",
     provider = getDefaultProvider(),
   } = args;
 
   try {
     const result = await callAIProvider({
-      systemPrompt: ARCHITECT_SYSTEM_PROMPT,
+      systemPrompt: CODEADVICE_SYSTEM_PROMPT,
       task,
       code,
-      analysisType: "comprehensive",
+      analysisType: "advice",
       reasoningEffort: reasoning_effort as ReasoningEffort,
       provider: provider as AIProvider,
     });
