@@ -37,9 +37,15 @@ export const ArchitectToolSchema = z.object({
     .describe(
       "AI provider to use. Defaults to xai (grok-4) but can switch to openai (o3)."
     ),
+  mode: z
+    .enum(["comprehensive", "advice"])
+    .optional()
+    .describe(
+      "Analysis mode: 'comprehensive' for full architectural review, 'advice' for quick, focused guidance. Defaults to advice."
+    ),
 });
 
-const ARCHITECT_SYSTEM_PROMPT = `You are an expert software architect with deep knowledge of design patterns, anti-patterns, scalable software design principles, and modern development practices. Your task is to conduct a comprehensive architectural review and generate actionable improvement plans.
+const COMPREHENSIVE_SYSTEM_PROMPT = `You are an expert software architect with deep knowledge of design patterns, anti-patterns, scalable software design principles, and modern development practices. Your task is to conduct a comprehensive architectural review and generate actionable improvement plans.
 
 ## Analysis Framework
 Structure your response with these sections:
@@ -95,17 +101,33 @@ Tailor recommendations based on project context (startup vs enterprise, legacy v
 
 Provide both strategic architectural guidance and tactical code-level improvements that a coding agent can implement effectively.`;
 
+const ADVICE_SYSTEM_PROMPT = `You're an expert software architect. Provide immediate, actionable guidance on the current coding task. Focus on practical improvements, targeted code patterns, or immediate bug fixes. 
+
+Respond with:
+• **Quick Assessment**: One-sentence summary of the main issue or opportunity
+• **Immediate Actions**: 2-4 bullet points with specific, implementable steps
+• **Code Examples**: Brief snippets showing the recommended approach (if applicable)
+• **Why This Helps**: Concise explanation of the benefit
+• **Next Steps**: Optional follow-up actions if the immediate fix works
+
+Keep it focused, practical, and directly relevant to the code provided. If you need clarification, ask one specific question.`;
+
+function getSystemPrompt(mode: string): string {
+  return mode === 'comprehensive' ? COMPREHENSIVE_SYSTEM_PROMPT : ADVICE_SYSTEM_PROMPT;
+}
+
 async function callXaiGrok(
   task: string,
   code: string,
-  reasoningEffort: string
+  reasoningEffort: string,
+  mode: string
 ) {
   const userPrompt = `Task: ${task}\n\nCode:\n${code}\n\nPlease provide a detailed step-by-step plan.`;
 
   const result = await generateText({
     model: xai("grok-4"),
     messages: [
-      { role: "system", content: ARCHITECT_SYSTEM_PROMPT },
+      { role: "system", content: getSystemPrompt(mode) },
       { role: "user", content: userPrompt },
     ],
     providerOptions: {
@@ -122,7 +144,7 @@ async function callXaiGrok(
   return result.text + tokenInfo;
 }
 
-async function callOpenAI(task: string, code: string, reasoningEffort: string) {
+async function callOpenAI(task: string, code: string, reasoningEffort: string, mode: string) {
   const openai = new OpenAI({
     apiKey: OPENAI_API_KEY,
   });
@@ -132,7 +154,7 @@ async function callOpenAI(task: string, code: string, reasoningEffort: string) {
   const response = await openai.chat.completions.create({
     model: "o3",
     messages: [
-      { role: "system", content: ARCHITECT_SYSTEM_PROMPT },
+      { role: "system", content: getSystemPrompt(mode) },
       { role: "user", content: userPrompt },
     ],
     reasoning_effort: reasoningEffort as any,
@@ -160,6 +182,7 @@ export async function runArchitectTool(
     code,
     reasoning_effort = "high",
     provider = AI_PROVIDER,
+    mode = "advice",
   } = args;
 
   try {
@@ -171,14 +194,14 @@ export async function runArchitectTool(
           "XAI_API_KEY environment variable is required for xAI provider"
         );
       }
-      result = await callXaiGrok(task, code, reasoning_effort);
+      result = await callXaiGrok(task, code, reasoning_effort, mode);
     } else if (provider === "openai") {
       if (!OPENAI_API_KEY) {
         throw new Error(
           "OPENAI_API_KEY environment variable is required for OpenAI provider"
         );
       }
-      result = await callOpenAI(task, code, reasoning_effort);
+      result = await callOpenAI(task, code, reasoning_effort, mode);
     } else {
       throw new Error(`Unsupported provider: ${provider}`);
     }
