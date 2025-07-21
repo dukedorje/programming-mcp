@@ -12,7 +12,9 @@
     "cursor-tools": "./build/index.js"
   },
   "dependencies": {
+    "@ai-sdk/xai": "^1.2.18",
     "@modelcontextprotocol/sdk": "^1.4.1",
+    "ai": "^4.3.19",
     "openai": "^4.82.0",
     "puppeteer": "^24.1.1",
     "zod": "^3.24.1"
