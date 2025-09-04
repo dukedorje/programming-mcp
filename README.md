@@ -1,6 +1,14 @@
-# 🤖 AI Development Assistant MCP Server
+# 🤖 Cursor Tools MCP Server
 
-Welcome to your AI-powered development toolkit, designed as a Model Context Protocol (MCP) server for Cursor! This project provides intelligent coding assistance through custom AI tools. Note that this is mostly a tutorial demo, and not a production-ready tool.
+An MCP (Model Context Protocol) server providing powerful tools with expert personas for intelligent assistance:
+
+## Core Tools
+- **Ask**: Natural language queries automatically routed to the best expert
+- **Discover**: Explore available expert personas and their specialties
+- **Persona**: Direct access to specific expert personas
+- **Screenshot**: Capture screenshots from URLs
+- **Architect**: Comprehensive architectural code reviews
+- **Code Review**: Git diff analysis and improvement suggestions
 
 ## ✨ Features
 
@@ -15,6 +23,20 @@ Take UI design screenshots and use them with the composer agent.
 ### 🔍 Code Review
 
 Use git diffs to trigger code reviews.
+
+### 🎭 Persona System
+
+Transform AI responses with distinct personalities:
+- **Charles**: Distinguished British architect with dry wit
+- **Ada**: Pragmatic performance engineer, metrics-focused
+
+### 📊 Code Advice
+
+Get focused guidance on specific coding problems.
+
+### 🔬 Researcher
+
+Deep-dive analysis for complex technical questions.
 
 ## 🚀 Getting Started
 

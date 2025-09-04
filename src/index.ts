@@ -26,11 +26,55 @@ import {
   runCodeReviewTool,
 } from "./tools/codeReview.js";
 
+import {
+  codeAdviceToolName,
+  codeAdviceToolDescription,
+  CodeAdviceToolSchema,
+  runCodeAdviceTool,
+} from "./tools/codeadvice.js";
+
+import {
+  researcherToolName,
+  researcherToolDescription,
+  ResearcherToolSchema,
+  runResearcherTool,
+} from "./tools/researcher.js";
+
+import {
+  personaToolName,
+  personaToolDescription,
+  PersonaToolSchema,
+  runPersonaTool,
+} from "./tools/persona.js";
+
+import {
+  askToolName,
+  askToolDescription,
+  AskToolSchema,
+  runAskTool,
+} from "./tools/ask.js";
+
+import {
+  discoverToolName,
+  discoverToolDescription,
+  DiscoverToolSchema,
+  runDiscoverTool,
+} from "./tools/discover.js";
+
+// Import personas to auto-register
+import "./personas/charles/index.js";
+import "./personas/ada/index.js";
+
 /**
- * A minimal MCP server providing three Cursor Tools:
+ * MCP server providing Cursor Tools:
  *   1) Screenshot
  *   2) Architect
  *   3) CodeReview
+ *   4) CodeAdvice
+ *   5) Researcher
+ *   6) Persona (Direct access)
+ *   7) Ask (Smart routing)
+ *   8) Discover (List personas)
  */
 
 // 1. Create an MCP server instance
@@ -87,6 +131,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description: "Concatenated code from one or more files",
             },
+            reasoning_effort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description: "How hard the model should think (default: high)",
+            },
+            provider: {
+              type: "string",
+              enum: ["xai", "openai"],
+              description: "AI provider to use (default: xai)",
+            },
+            persona: {
+              type: "string",
+              description: "Persona to apply (e.g., 'charles' for British architect)",
+            },
           },
           required: ["task", "code"],
         },
@@ -104,6 +162,165 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["folderPath"],
+        },
+      },
+      {
+        name: codeAdviceToolName,
+        description: codeAdviceToolDescription,
+        inputSchema: {
+          type: "object",
+          properties: {
+            task: {
+              type: "string",
+              description: "Description of the problem or advice needed",
+            },
+            code: {
+              type: "string",
+              description: "Relevant code snippet",
+            },
+            reasoning_effort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description: "How hard the model should think (low/medium/high)",
+            },
+            provider: {
+              type: "string",
+              enum: ["xai", "openai"],
+              description: "AI provider to use (xai or openai)",
+            },
+          },
+          required: ["task", "code"],
+        },
+      },
+      {
+        name: researcherToolName,
+        description: researcherToolDescription,
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Research query to investigate",
+            },
+            search_engines: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["google", "xai", "arxiv", "wikipedia", "github", "stackexchange", "pubmed", "semantic_scholar"],
+              },
+              description: "Search engines to use (default: google, xai)",
+            },
+            max_results_per_engine: {
+              type: "number",
+              description: "Maximum results per search engine (1-20, default: 5)",
+            },
+            deep_search: {
+              type: "boolean",
+              description: "Whether to perform deep search by following links",
+            },
+            include_academic: {
+              type: "boolean",
+              description: "Whether to prioritize academic sources",
+            },
+            citation_style: {
+              type: "string",
+              enum: ["apa", "mla", "chicago", "ieee", "inline"],
+              description: "Citation style to use (default: inline)",
+            },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: personaToolName,
+        description: personaToolDescription,
+        inputSchema: {
+          type: "object",
+          properties: {
+            persona_id: {
+              type: "string",
+              description: "ID of the persona (e.g., 'charles')",
+            },
+            query: {
+              type: "string",
+              description: "Question or request for the persona",
+            },
+            context: {
+              type: "string",
+              description: "Additional context or code to analyze",
+            },
+            analysis_type: {
+              type: "string",
+              enum: ["comprehensive", "advice", "research", "review"],
+              description: "Type of analysis (default: advice)",
+            },
+            reasoning_effort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description: "Reasoning effort level",
+            },
+            provider: {
+              type: "string",
+              enum: ["xai", "openai"],
+              description: "AI provider to use",
+            },
+          },
+          required: ["persona_id", "query"],
+        },
+      },
+      {
+        name: askToolName,
+        description: askToolDescription,
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Your question or request",
+            },
+            context: {
+              type: "string",
+              description: "Additional code or context for analysis",
+            },
+            hint: {
+              type: "string",
+              description: "Optional hint for routing (e.g., 'architecture', 'security')",
+            },
+            explain_routing: {
+              type: "boolean",
+              description: "Show which persona was selected and why",
+            },
+            reasoning_effort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description: "How thoroughly to think about the answer",
+            },
+            provider: {
+              type: "string",
+              enum: ["xai", "openai"],
+              description: "AI provider to use",
+            },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: discoverToolName,
+        description: discoverToolDescription,
+        inputSchema: {
+          type: "object",
+          properties: {
+            category: {
+              type: "string",
+              enum: ["architecture", "algorithms", "security", "frontend", "backend", "data", "all"],
+              description: "Filter personas by category",
+            },
+            verbose: {
+              type: "boolean",
+              description: "Show detailed information including example queries",
+            },
+          },
+          required: [],
         },
       },
     ],
@@ -126,6 +343,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case codeReviewToolName: {
       const validated = CodeReviewToolSchema.parse(args);
       return await runCodeReviewTool(validated);
+    }
+    case codeAdviceToolName: {
+      const validated = CodeAdviceToolSchema.parse(args);
+      return await runCodeAdviceTool(validated);
+    }
+    case researcherToolName: {
+      const validated = ResearcherToolSchema.parse(args);
+      return await runResearcherTool(validated);
+    }
+    case personaToolName: {
+      const validated = PersonaToolSchema.parse(args);
+      return await runPersonaTool(validated);
+    }
+    case askToolName: {
+      const validated = AskToolSchema.parse(args);
+      return await runAskTool(validated);
+    }
+    case discoverToolName: {
+      const validated = DiscoverToolSchema.parse(args);
+      return await runDiscoverTool(validated);
     }
     default:
       throw new Error(`Unknown tool: ${name}`);

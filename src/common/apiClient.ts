@@ -9,6 +9,7 @@ import { generateText } from "ai";
 import { 
   OPENAI_API_KEY, 
   validateProvider, 
+  getDefaultProvider,
   type AIProvider, 
   type ReasoningEffort 
 } from "./providerConfig.js";
@@ -19,7 +20,7 @@ export interface AICallConfig {
   systemPrompt: string;
   task: string;
   code: string;
-  analysisType: "comprehensive" | "advice";
+  analysisType: "comprehensive" | "advice" | "research" | "review";
   reasoningEffort: ReasoningEffort;
   provider: AIProvider;
 }
@@ -37,11 +38,7 @@ async function callXaiProvider(config: AICallConfig): Promise<string> {
       { role: "system", content: config.systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    providerOptions: {
-      xai: {
-        reasoningEffort: config.reasoningEffort,
-      },
-    },
+    // Note: xAI doesn't support reasoningEffort parameter
   });
 
   const tokenInfo = formatTokenInfo("xai", result.usage, config.reasoningEffort);
@@ -60,12 +57,12 @@ async function callOpenAIProvider(config: AICallConfig): Promise<string> {
   });
 
   const response = await openai.chat.completions.create({
-    model: "o3",
+    model: "gpt-5",
     messages: [
       { role: "system", content: config.systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    reasoning_effort: config.reasoningEffort as any,
+    reasoning_effort: config.reasoningEffort as any, // GPT-5 supports this
   });
 
   const assistantMessage = response.choices?.[0]?.message?.content ?? "No response from model.";
@@ -82,7 +79,12 @@ export async function callAIProvider(config: AICallConfig): Promise<string> {
   validateProvider(config.provider);
 
   if (config.provider === "xai") {
-    return callXaiProvider(config);
+    // xAI doesn't support reasoning_effort, so create config without it
+    const xaiConfig = {
+      ...config,
+      reasoningEffort: undefined as any // Remove for xAI
+    };
+    return callXaiProvider(xaiConfig);
   } else if (config.provider === "openai") {
     return callOpenAIProvider(config);
   } else {

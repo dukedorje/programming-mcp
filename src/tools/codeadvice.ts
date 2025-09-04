@@ -5,7 +5,7 @@ import { CODEADVICE_SYSTEM_PROMPT } from "../prompts/codeadvicePrompts.js";
 
 /**
  * CodeAdvice tool
- *   - Calls an AI model (xAI Grok or OpenAI o3) to provide quick, focused coding guidance
+ *   - Calls an AI model (xAI Grok or OpenAI GPT-5) to provide quick, focused coding guidance
  *   - Input: 'task' (description of the problem), 'code' (relevant code snippet)
  *   - Provides immediate, actionable advice for specific coding problems
  */
@@ -29,7 +29,7 @@ export const CodeAdviceToolSchema = z.object({
     .enum(["xai", "openai"])
     .optional()
     .describe(
-      "AI provider to use. Defaults to xai (grok-4) but can switch to openai (o3)."
+      "AI provider to use. Defaults to xai (grok-4) but can switch to openai (gpt-5)."
     ),
 });
 

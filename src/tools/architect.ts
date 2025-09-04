@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { callAIProvider } from "../common/apiClient.js";
+import { callAIWithPersona } from "../common/personaClient.js";
 import { getDefaultProvider, type AIProvider, type ReasoningEffort } from "../common/providerConfig.js";
 import { ARCHITECT_SYSTEM_PROMPT } from "../prompts/architectPrompts.js";
 
 /**
  * Architect tool
- *   - Calls an AI model (xAI Grok or OpenAI o3) to generate comprehensive architectural reviews
+ *   - Calls an AI model (xAI Grok or OpenAI GPT-5) to generate comprehensive architectural reviews
  *   - Input: 'task' (description of the task), 'code' (one or more code files concatenated)
  *   - Provides detailed analysis with executive summary, architectural overview, and prioritized action plans
  */
@@ -29,7 +30,13 @@ export const ArchitectToolSchema = z.object({
     .enum(["xai", "openai"])
     .optional()
     .describe(
-      "AI provider to use. Defaults to xai (grok-4) but can switch to openai (o3)."
+      "AI provider to use. Defaults to xai (grok-4) but can switch to openai (gpt-5)."
+    ),
+  persona: z
+    .string()
+    .optional()
+    .describe(
+      "Persona to apply (e.g., 'charles' for British architect). Leave empty for standard analysis."
     ),
 });
 
@@ -43,17 +50,29 @@ export async function runArchitectTool(
     code,
     reasoning_effort = "high",
     provider = getDefaultProvider(),
+    persona,
   } = args;
 
   try {
-    const result = await callAIProvider({
-      systemPrompt: ARCHITECT_SYSTEM_PROMPT,
-      task,
-      code,
-      analysisType: "comprehensive",
-      reasoningEffort: reasoning_effort as ReasoningEffort,
-      provider: provider as AIProvider,
-    });
+    // Use persona-aware client if persona is specified
+    const result = persona
+      ? await callAIWithPersona({
+          systemPrompt: ARCHITECT_SYSTEM_PROMPT,
+          task,
+          code,
+          analysisType: "comprehensive",
+          reasoningEffort: reasoning_effort as ReasoningEffort,
+          provider: provider as AIProvider,
+          personaId: persona,
+        })
+      : await callAIProvider({
+          systemPrompt: ARCHITECT_SYSTEM_PROMPT,
+          task,
+          code,
+          analysisType: "comprehensive",
+          reasoningEffort: reasoning_effort as ReasoningEffort,
+          provider: provider as AIProvider,
+        });
 
     return {
       content: [

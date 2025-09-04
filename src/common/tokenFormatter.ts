@@ -26,7 +26,7 @@ export function formatOpenAITokenInfo(
   usage: TokenUsage | undefined,
   reasoningEffort: ReasoningEffort
 ): string {
-  const baseInfo = `Provider: OpenAI o3 | Reasoning effort: ${reasoningEffort}`;
+  const baseInfo = `Provider: OpenAI GPT-5 | Reasoning effort: ${reasoningEffort}`;
   const reasoningTokens = usage?.reasoning_tokens ?? 0;
   const totalTokens = usage?.totalTokens ?? 0;
   
