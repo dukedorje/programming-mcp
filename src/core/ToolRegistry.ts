@@ -3,16 +3,16 @@
  * Implements the Command pattern with EventBus integration
  */
 
-import { 
-  ToolCommand, 
-  ToolRegistration, 
-  ToolLifecycle, 
-  ToolNotFoundError, 
+import {
+  ToolCommand,
+  ToolRegistration,
+  ToolLifecycle,
+  ToolNotFoundError,
   DuplicateToolError,
   ToolError,
-  ToolHealthStatus
-} from './ToolCommand.js';
-import { eventBus, type EventBus } from '../infra/eventBus.js';
+  ToolHealthStatus,
+} from "./ToolCommand.js";
+import { eventBus, type EventBus } from "../infra/eventBus.js";
 
 export class ToolRegistry {
   private tools = new Map<string, ToolRegistration>();
@@ -21,15 +21,19 @@ export class ToolRegistry {
 
   constructor(eventBusInstance?: EventBus) {
     this.eventBus = eventBusInstance || eventBus;
-    
+
     // Listen for system events
-    this.eventBus.on('system:shutdown', this.handleShutdown.bind(this), 'ToolRegistry');
+    this.eventBus.on(
+      "system:shutdown",
+      this.handleShutdown.bind(this),
+      "ToolRegistry"
+    );
   }
 
   /**
    * Register a new tool command
    */
-  async register(tool: ToolCommand, source: string = 'unknown'): Promise<void> {
+  async register(tool: ToolCommand, source: string = "unknown"): Promise<void> {
     if (this.tools.has(tool.name)) {
       throw new DuplicateToolError(tool.name);
     }
@@ -39,14 +43,14 @@ export class ToolRegistry {
       tool,
       registeredAt: Date.now(),
       source,
-      enabled: true
+      enabled: true,
     };
 
     // Emit lifecycle event
-    this.eventBus.emit('tool:lifecycle', {
+    this.eventBus.emit("tool:lifecycle", {
       name: tool.name,
       state: ToolLifecycle.LOADING,
-      metadata: { source, version: tool.version }
+      metadata: { source, version: tool.version },
     });
 
     try {
@@ -59,35 +63,39 @@ export class ToolRegistry {
       this.tools.set(tool.name, registration);
 
       // Update lifecycle state
-      this.eventBus.emit('tool:lifecycle', {
+      this.eventBus.emit("tool:lifecycle", {
         name: tool.name,
-        state: ToolLifecycle.READY
+        state: ToolLifecycle.READY,
       });
 
       // Emit registration event
-      this.eventBus.emit('tool:registered', {
+      this.eventBus.emit("tool:registered", {
         name: tool.name,
         version: tool.version,
-        source
+        source,
       });
 
-      console.log(`✅ Tool '${tool.name}' registered from ${source}`);
+      console.error(`✅ Tool '${tool.name}' registered from ${source}`);
     } catch (error) {
       // Handle registration failure
-      this.eventBus.emit('tool:lifecycle', {
+      this.eventBus.emit("tool:lifecycle", {
         name: tool.name,
         state: ToolLifecycle.ERROR,
-        metadata: { error: error instanceof Error ? error.message : String(error) }
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
       });
 
-      this.eventBus.emit('tool:error', {
+      this.eventBus.emit("tool:error", {
         name: tool.name,
-        error: error instanceof Error ? error : new Error(String(error))
+        error: error instanceof Error ? error : new Error(String(error)),
       });
 
       throw new ToolError(
-        `Failed to register tool '${tool.name}': ${error instanceof Error ? error.message : String(error)}`,
-        'EXECUTION_ERROR',
+        `Failed to register tool '${tool.name}': ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        "EXECUTION_ERROR",
         tool.name,
         error instanceof Error ? error : undefined
       );
@@ -104,10 +112,10 @@ export class ToolRegistry {
     }
 
     // Emit lifecycle event
-    this.eventBus.emit('tool:lifecycle', {
+    this.eventBus.emit("tool:lifecycle", {
       name,
       state: ToolLifecycle.UNLOADING,
-      metadata: { reason }
+      metadata: { reason },
     });
 
     try {
@@ -121,31 +129,36 @@ export class ToolRegistry {
       this.healthCache.delete(name);
 
       // Update lifecycle state
-      this.eventBus.emit('tool:lifecycle', {
+      this.eventBus.emit("tool:lifecycle", {
         name,
-        state: ToolLifecycle.DISPOSED
+        state: ToolLifecycle.DISPOSED,
       });
 
       // Emit unregistration event
-      this.eventBus.emit('tool:unregistered', {
+      this.eventBus.emit("tool:unregistered", {
         name,
-        reason
+        reason,
       });
 
-      console.log(`❌ Tool '${name}' unregistered${reason ? `: ${reason}` : ''}`);
+      console.error(
+        `❌ Tool '${name}' unregistered${reason ? `: ${reason}` : ""}`
+      );
       return true;
     } catch (error) {
       // Handle unload failure
-      this.eventBus.emit('tool:error', {
+      this.eventBus.emit("tool:error", {
         name,
-        error: error instanceof Error ? error : new Error(String(error))
+        error: error instanceof Error ? error : new Error(String(error)),
       });
 
       // Force removal even if unload fails
       this.tools.delete(name);
       this.healthCache.delete(name);
 
-      console.warn(`⚠️ Tool '${name}' forcibly removed due to unload error:`, error);
+      console.warn(
+        `⚠️ Tool '${name}' forcibly removed due to unload error:`,
+        error
+      );
       return true;
     }
   }
@@ -177,8 +190,8 @@ export class ToolRegistry {
    */
   list(): ToolCommand[] {
     return Array.from(this.tools.values())
-      .filter(reg => reg.enabled)
-      .map(reg => reg.tool);
+      .filter((reg) => reg.enabled)
+      .map((reg) => reg.tool);
   }
 
   /**
@@ -209,9 +222,9 @@ export class ToolRegistry {
     const categories: Record<string, number> = {};
     const sources: Record<string, number> = {};
 
-    registrations.forEach(reg => {
+    registrations.forEach((reg) => {
       // Count categories
-      const category = reg.tool.metadata?.category || 'uncategorized';
+      const category = reg.tool.metadata?.category || "uncategorized";
       categories[category] = (categories[category] || 0) + 1;
 
       // Count sources
@@ -220,10 +233,10 @@ export class ToolRegistry {
 
     return {
       totalTools: registrations.length,
-      enabledTools: registrations.filter(r => r.enabled).length,
-      disabledTools: registrations.filter(r => !r.enabled).length,
+      enabledTools: registrations.filter((r) => r.enabled).length,
+      disabledTools: registrations.filter((r) => !r.enabled).length,
       categories,
-      sources
+      sources,
     };
   }
 
@@ -237,11 +250,11 @@ export class ToolRegistry {
     }
 
     registration.enabled = enabled;
-    
-    this.eventBus.emit('tool:lifecycle', {
+
+    this.eventBus.emit("tool:lifecycle", {
       name,
       state: enabled ? ToolLifecycle.READY : ToolLifecycle.DISPOSED,
-      metadata: { enabled }
+      metadata: { enabled },
     });
 
     return true;
@@ -250,7 +263,10 @@ export class ToolRegistry {
   /**
    * Check tool health
    */
-  async checkHealth(name: string, useCache: boolean = true): Promise<ToolHealthStatus> {
+  async checkHealth(
+    name: string,
+    useCache: boolean = true
+  ): Promise<ToolHealthStatus> {
     const registration = this.tools.get(name);
     if (!registration) {
       throw new ToolNotFoundError(name);
@@ -259,14 +275,15 @@ export class ToolRegistry {
     // Check cache first
     if (useCache) {
       const cached = this.healthCache.get(name);
-      if (cached && (Date.now() - cached.lastChecked) < 30000) { // 30 second cache
+      if (cached && Date.now() - cached.lastChecked < 30000) {
+        // 30 second cache
         return cached;
       }
     }
 
     let healthStatus: ToolHealthStatus = {
       healthy: true,
-      lastChecked: Date.now()
+      lastChecked: Date.now(),
     };
 
     try {
@@ -278,7 +295,7 @@ export class ToolRegistry {
       healthStatus = {
         healthy: false,
         message: error instanceof Error ? error.message : String(error),
-        lastChecked: Date.now()
+        lastChecked: Date.now(),
       };
     }
 
@@ -286,9 +303,9 @@ export class ToolRegistry {
     this.healthCache.set(name, healthStatus);
 
     // Emit health event
-    this.eventBus.emit('tool:health', {
+    this.eventBus.emit("tool:health", {
       name,
-      status: healthStatus
+      status: healthStatus,
     });
 
     return healthStatus;
@@ -302,14 +319,14 @@ export class ToolRegistry {
     const names = this.getToolNames();
 
     await Promise.allSettled(
-      names.map(async name => {
+      names.map(async (name) => {
         try {
           results[name] = await this.checkHealth(name, false);
         } catch (error) {
           results[name] = {
             healthy: false,
             message: error instanceof Error ? error.message : String(error),
-            lastChecked: Date.now()
+            lastChecked: Date.now(),
           };
         }
       })
@@ -323,9 +340,9 @@ export class ToolRegistry {
    */
   async clear(): Promise<void> {
     const names = Array.from(this.tools.keys());
-    
+
     await Promise.allSettled(
-      names.map(name => this.unregister(name, 'registry cleared'))
+      names.map((name) => this.unregister(name, "registry cleared"))
     );
   }
 
@@ -333,9 +350,9 @@ export class ToolRegistry {
    * Handle system shutdown
    */
   private async handleShutdown(): Promise<void> {
-    console.log('🔄 ToolRegistry: Shutting down, unregistering all tools...');
+    console.error("🔄 ToolRegistry: Shutting down, unregistering all tools...");
     await this.clear();
-    console.log('✅ ToolRegistry: Shutdown complete');
+    console.error("✅ ToolRegistry: Shutdown complete");
   }
 
   /**

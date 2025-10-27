@@ -31,7 +31,7 @@ class EventBus {
     const listenerSource: ListenerSource = {
       handler,
       source,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
 
     const handlers = this.listeners.get(event as string)!;
@@ -56,11 +56,16 @@ class EventBus {
   emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
     const handlers = this.listeners.get(event as string);
     if (handlers) {
-      handlers.forEach(listenerSource => {
+      handlers.forEach((listenerSource) => {
         try {
           listenerSource.handler(data);
         } catch (error) {
-          console.error(`Error in event handler for ${String(event)} (source: ${listenerSource.source || 'unknown'}):`, error);
+          console.error(
+            `Error in event handler for ${String(event)} (source: ${
+              listenerSource.source || "unknown"
+            }):`,
+            error
+          );
         }
       });
     }
@@ -74,10 +79,14 @@ class EventBus {
     handler: EventHandler<EventMap[K]>,
     source?: string
   ): () => void {
-    const unsubscribe = this.on(event, (data) => {
-      handler(data);
-      unsubscribe();
-    }, source);
+    const unsubscribe = this.on(
+      event,
+      (data) => {
+        handler(data);
+        unsubscribe();
+      },
+      source
+    );
     return unsubscribe;
   }
 
@@ -122,19 +131,20 @@ class EventBus {
     oldListeners: Array<{ event: string; source?: string; age: number }>;
   } {
     const eventCounts: Record<string, number> = {};
-    const oldListeners: Array<{ event: string; source?: string; age: number }> = [];
+    const oldListeners: Array<{ event: string; source?: string; age: number }> =
+      [];
     const now = Date.now();
     const OLD_THRESHOLD = 5 * 60 * 1000; // 5 minutes
 
     this.listeners.forEach((handlers, event) => {
       eventCounts[event] = handlers.size;
-      handlers.forEach(listener => {
+      handlers.forEach((listener) => {
         const age = now - listener.createdAt;
         if (age > OLD_THRESHOLD) {
           oldListeners.push({
             event,
             source: listener.source,
-            age: Math.round(age / 1000) // in seconds
+            age: Math.round(age / 1000), // in seconds
           });
         }
       });
@@ -143,7 +153,7 @@ class EventBus {
     return {
       totalListeners: this.totalListenerCount,
       eventCounts,
-      oldListeners
+      oldListeners,
     };
   }
 }
@@ -154,37 +164,37 @@ class EventBus {
 
 export interface ToolEventMap {
   // Tool lifecycle events
-  'tool:registered': {
+  "tool:registered": {
     name: string;
     version?: string;
     source: string;
   };
-  'tool:unregistered': {
+  "tool:unregistered": {
     name: string;
     reason?: string;
   };
-  'tool:execute:start': {
+  "tool:execute:start": {
     name: string;
     requestId?: string;
     args: any;
   };
-  'tool:execute:end': {
+  "tool:execute:end": {
     name: string;
     requestId?: string;
     success: boolean;
     executionTime: number;
   };
-  'tool:error': {
+  "tool:error": {
     name: string;
     error: Error;
     requestId?: string;
   };
-  'tool:lifecycle': {
+  "tool:lifecycle": {
     name: string;
-    state: 'loading' | 'ready' | 'error' | 'unloading' | 'disposed';
+    state: "loading" | "ready" | "error" | "unloading" | "disposed";
     metadata?: any;
   };
-  'tool:health': {
+  "tool:health": {
     name: string;
     status: {
       healthy: boolean;
@@ -194,28 +204,28 @@ export interface ToolEventMap {
   };
 
   // Registry events
-  'registry:initialized': {
+  "registry:initialized": {
     toolCount: number;
   };
-  'registry:discovery:start': {
+  "registry:discovery:start": {
     source: string;
   };
-  'registry:discovery:complete': {
+  "registry:discovery:complete": {
     source: string;
     discovered: number;
     errors: number;
   };
 
   // System events
-  'system:startup': {
+  "system:startup": {
     timestamp: number;
     version: string;
   };
-  'system:shutdown': {
+  "system:shutdown": {
     timestamp: number;
     reason?: string;
   };
-  'system:error': {
+  "system:error": {
     error: Error;
     context?: string;
   };
@@ -236,18 +246,21 @@ export const eventBus = new EventBus();
 // DEVELOPMENT HELPERS
 // =============================================================================
 
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
   // Log all tool events in development
   const originalEmit = eventBus.emit.bind(eventBus);
-  eventBus.emit = function(event: any, data: any) {
-    if (String(event).startsWith('tool:') || String(event).startsWith('registry:')) {
-      console.log(`[MCP EventBus] ${String(event)}:`, data);
+  eventBus.emit = function (event: any, data: any) {
+    if (
+      String(event).startsWith("tool:") ||
+      String(event).startsWith("registry:")
+    ) {
+      console.error(`[MCP EventBus] ${String(event)}:`, data);
     }
     return originalEmit(event, data);
   };
 
   // Add to global for debugging
-  if (typeof globalThis !== 'undefined') {
+  if (typeof globalThis !== "undefined") {
     (globalThis as any).__mcpEventBus = eventBus;
   }
 }

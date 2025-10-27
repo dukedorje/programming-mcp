@@ -1,3 +1,26 @@
+
+
+## How Users Run It
+folks can use it in their MCP config like:
+
+**Cursor Settings → MCP → Add Server:**
+- **Command**: `npx`
+- **Args**: `-y`, `@identikey/coding-mcp`
+
+Or in `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "coding-mcp": {
+      "command": "npx",
+      "args": ["-y", "@identikey/coding-mcp"]
+    }
+  }
+}
+```
+
+The server spawns as a child process, Cursor talks JSON-RPC over stdin/stdout, and all your tool logs go to stderr where they belong. Clean af.
+
 # 🤖 Cursor Tools MCP Server
 
 An MCP (Model Context Protocol) server providing powerful tools with expert personas for intelligent assistance:
