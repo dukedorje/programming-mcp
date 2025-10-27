@@ -2,73 +2,79 @@
  * Persona-aware AI client that enhances API calls with personality layers
  */
 
-import { callAIProvider } from './apiClient.js';
-import { type AIProvider, type ReasoningEffort } from './providerConfig.js';
-import { Persona, PersonaContext, PersonaRegistry } from '../personas/types.js';
+import { callAIProvider } from "./apiClient.js";
+import {
+  chooseProvider,
+  getDefaultProvider,
+  type AIProvider,
+  type ReasoningEffort,
+} from "./providerConfig.js";
+import { Persona, PersonaContext, PersonaRegistry } from "../personas/types.js";
 
 export interface PersonaCallConfig {
   /** System prompt to use as base */
   systemPrompt: string;
-  
+
   /** User's task or question */
   task: string;
-  
+
   /** Code or context to analyze */
   code: string;
-  
+
   /** Type of analysis being performed */
   analysisType: "comprehensive" | "advice" | "research" | "review";
-  
+
   /** Reasoning effort level */
   reasoningEffort: ReasoningEffort;
-  
-  /** AI provider to use */
-  provider: AIProvider;
-  
+
+  /**
+   * AI provider override (generally avoid passing; provider is auto-selected
+   * based on persona traits, analysis type, and reasoning effort)
+   */
+  providerOverride?: AIProvider;
+
   /** Persona ID to use */
   personaId: string;
-  
+
   /** Conversation context if available */
   conversationContext?: string[];
-  
+
   /** Response tone control */
   toneStyle?: "concise" | "detailed" | "humorous" | "straight";
-  
+
   /** Output format preference */
   outputFormat?: "tldr" | "detailed" | "dual";
-  
+
   /** Target audience level */
   audienceLevel?: "beginner" | "intermediate" | "expert" | "auto";
-  
+
   /** Include visual diagrams */
   includeDiagrams?: boolean;
-  
+
   /** User constraints for empathy */
   userConstraints?: string;
-  
-  /** Override provider for this request */
-  providerOverride?: "xai" | "openai";
 }
 
 /**
  * Call AI provider with optional persona enhancement
  */
-export async function callAIWithPersona(config: PersonaCallConfig): Promise<string> {
+export async function callAIWithPersona(
+  config: PersonaCallConfig
+): Promise<string> {
   const {
     systemPrompt,
     task,
     code,
     analysisType,
     reasoningEffort,
-    provider,
     personaId,
-    conversationContext
+    conversationContext,
   } = config;
 
   let enhancedSystemPrompt = systemPrompt;
   let enhancedTask = task;
   let response: string;
-  let selectedProvider = provider;
+  let selectedProvider: AIProvider = getDefaultProvider();
   let effectiveReasoningEffort = reasoningEffort;
 
   // If persona is specified, apply persona enhancements
@@ -79,15 +85,25 @@ export async function callAIWithPersona(config: PersonaCallConfig): Promise<stri
       throw new Error(`Persona '${personaId}' not found in registry`);
     }
 
-    // Use persona's preferred provider if available and no override specified
-    if (persona.traits.preferredProvider && !config.providerOverride) {
-      selectedProvider = persona.traits.preferredProvider;
-    } else if (config.providerOverride) {
+    // Auto-select provider with persona preference and optional override
+    selectedProvider = chooseProvider({
+      analysisType,
+      reasoningEffort: effectiveReasoningEffort,
+      personaPreferredProvider: config.providerOverride
+        ? undefined
+        : persona.traits.preferredProvider,
+      textHint: task,
+    });
+
+    if (config.providerOverride) {
       selectedProvider = config.providerOverride;
     }
 
     // Use persona's preferred reasoning effort if available
-    if (persona.traits.providerPreferences?.reasoning && selectedProvider === "openai") {
+    if (
+      persona.traits.providerPreferences?.reasoning &&
+      selectedProvider === "openai"
+    ) {
       effectiveReasoningEffort = persona.traits.providerPreferences.reasoning;
     }
 
@@ -102,7 +118,7 @@ export async function callAIWithPersona(config: PersonaCallConfig): Promise<stri
       audienceLevel: config.audienceLevel,
       includeDiagrams: config.includeDiagrams,
       userConstraints: config.userConstraints,
-      providerOverride: config.providerOverride
+      providerOverride: config.providerOverride,
     };
 
     // Enhance prompts with persona
@@ -116,7 +132,7 @@ export async function callAIWithPersona(config: PersonaCallConfig): Promise<stri
       code,
       analysisType,
       reasoningEffort: effectiveReasoningEffort,
-      provider: selectedProvider
+      provider: selectedProvider,
     });
 
     // Post-process response if persona has custom processing
@@ -129,14 +145,19 @@ export async function callAIWithPersona(config: PersonaCallConfig): Promise<stri
       response = persona.formatOutput(response, context);
     }
   } else {
-    // No persona specified, call AI provider directly
+    // No persona specified, auto-select provider
+    selectedProvider = chooseProvider({
+      analysisType,
+      reasoningEffort: effectiveReasoningEffort,
+      textHint: task,
+    });
     response = await callAIProvider({
       systemPrompt: enhancedSystemPrompt,
       task: enhancedTask,
       code,
       analysisType,
       reasoningEffort: effectiveReasoningEffort,
-      provider: selectedProvider
+      provider: selectedProvider,
     });
   }
 
@@ -146,10 +167,14 @@ export async function callAIWithPersona(config: PersonaCallConfig): Promise<stri
 /**
  * Helper to list available personas
  */
-export function getAvailablePersonas(): Array<{id: string, name: string, description: string}> {
-  return PersonaRegistry.list().map(p => ({
+export function getAvailablePersonas(): Array<{
+  id: string;
+  name: string;
+  description: string;
+}> {
+  return PersonaRegistry.list().map((p) => ({
     id: p.id,
     name: p.name,
-    description: p.description
+    description: p.description,
   }));
 }

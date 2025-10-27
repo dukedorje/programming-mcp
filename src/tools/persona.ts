@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { callAIWithPersona } from "../common/personaClient.js";
-import { getDefaultProvider, type AIProvider, type ReasoningEffort } from "../common/providerConfig.js";
+import { type ReasoningEffort } from "../common/providerConfig.js";
 import { PersonaRegistry } from "../personas/types.js";
 
 /**
@@ -16,70 +16,68 @@ export const PersonaToolSchema = z.object({
   persona_id: z
     .string()
     .describe("ID of the persona to interact with (e.g., 'charles')"),
-  
+
   query: z
     .string()
     .min(1, "Query is required")
     .describe("Question or request for the persona"),
-  
+
   context: z
     .string()
     .optional()
     .describe("Additional context or code for the persona to analyze"),
-  
+
   analysis_type: z
     .enum(["comprehensive", "advice", "research", "review"])
     .optional()
     .default("advice")
     .describe("Type of analysis needed"),
-  
+
   reasoning_effort: z
     .enum(["low", "medium", "high"])
     .optional()
     .default("medium")
     .describe("Reasoning effort level"),
-  
-  provider: z
-    .enum(["xai", "openai"])
-    .optional()
-    .describe("AI provider to use"),
-  
+
   tone_style: z
     .enum(["concise", "detailed", "humorous", "straight"])
     .optional()
-    .describe("Response tone (concise=direct, detailed=balanced, humorous=witty, straight=professional)"),
-  
+    .describe(
+      "Response tone (concise=direct, detailed=balanced, humorous=witty, straight=professional)"
+    ),
+
   output_format: z
     .enum(["tldr", "detailed", "dual"])
     .optional()
-    .describe("Output format (tldr=brief summary, detailed=full analysis, dual=both)"),
-  
+    .describe(
+      "Output format (tldr=brief summary, detailed=full analysis, dual=both)"
+    ),
+
   audience_level: z
     .enum(["beginner", "intermediate", "expert", "auto"])
     .optional()
     .describe("Target audience expertise level"),
-  
+
   include_diagrams: z
     .boolean()
     .optional()
     .describe("Include visual diagrams where applicable"),
-  
+
   user_constraints: z
     .string()
     .optional()
-    .describe("User's constraints or context (e.g., 'tight deadline', 'legacy codebase')"),
+    .describe(
+      "User's constraints or context (e.g., 'tight deadline', 'legacy codebase')"
+    ),
 });
 
-export async function runPersonaTool(
-  args: z.infer<typeof PersonaToolSchema>
-) {
+export async function runPersonaTool(args: z.infer<typeof PersonaToolSchema>) {
   const {
     persona_id,
     query,
     context = "",
     analysis_type,
     reasoning_effort,
-    provider = getDefaultProvider(),
     tone_style,
     output_format,
     audience_level,
@@ -90,12 +88,18 @@ export async function runPersonaTool(
   // Verify persona exists
   const persona = PersonaRegistry.get(persona_id);
   if (!persona) {
-    const available = PersonaRegistry.list().map(p => p.id).join(", ");
+    const available = PersonaRegistry.list()
+      .map((p) => p.id)
+      .join(", ");
     return {
-      content: [{
-        type: "text",
-        text: `Persona '${persona_id}' not found. Available personas: ${available || "none registered"}`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `Persona '${persona_id}' not found. Available personas: ${
+            available || "none registered"
+          }`,
+        },
+      ],
     };
   }
 
@@ -112,7 +116,6 @@ Respond naturally and directly to their query.`;
       code: context,
       analysisType: analysis_type,
       reasoningEffort: reasoning_effort as ReasoningEffort,
-      provider: provider as AIProvider,
       personaId: persona_id,
       toneStyle: tone_style,
       outputFormat: output_format,
@@ -122,17 +125,21 @@ Respond naturally and directly to their query.`;
     });
 
     return {
-      content: [{
-        type: "text",
-        text: result,
-      }],
+      content: [
+        {
+          type: "text",
+          text: result,
+        },
+      ],
     };
   } catch (error: any) {
     return {
-      content: [{
-        type: "text",
-        text: `Error calling ${persona.name}: ${error.message || error}`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `Error calling ${persona.name}: ${error.message || error}`,
+        },
+      ],
     };
   }
 }

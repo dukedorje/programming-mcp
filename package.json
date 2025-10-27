@@ -1,16 +1,44 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "mcp-server",
+  "name": "@identikey/coding-mcp",
   "version": "2.0.1",
-  "description": "MCP Server with three Cursor Tools: Screenshot, Architect, and Code Review",
+  "description": "MCP Server with expert AI personas for code architecture, reviews, screenshots, and research",
   "type": "module",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "files": [
+    "build",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "start": "node build/index.js",
-    "test": "bun test"
+    "test": "bun test",
+    "prepublishOnly": "npm run build"
   },
   "bin": {
-    "cursor-tools": "./build/index.js"
+    "coding-mcp": "./build/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cursor",
+    "ai",
+    "code-review",
+    "architecture",
+    "personas",
+    "screenshot",
+    "developer-tools"
+  ],
+  "author": "Duke Jones",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/identikey/coding-mcp.git"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@ai-sdk/xai": "^1.2.18",

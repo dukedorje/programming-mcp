@@ -64,6 +64,11 @@ import {
 // Import personas to auto-register
 import "./personas/charles/index.js";
 import "./personas/ada/index.js";
+import "./personas/xavier/index.js";
+import "./personas/atlas/index.js";
+import "./personas/hermes/index.js";
+import "./personas/sentinel/index.js";
+import "./personas/iris/index.js";
 
 /**
  * MCP server providing Cursor Tools:
@@ -87,7 +92,7 @@ const server = new Server(
     capabilities: {
       tools: {},
     },
-  },
+  }
 );
 
 // 2. Define the list of tools
@@ -136,14 +141,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               enum: ["low", "medium", "high"],
               description: "How hard the model should think (default: high)",
             },
-            provider: {
-              type: "string",
-              enum: ["xai", "openai"],
-              description: "AI provider to use (default: xai)",
-            },
             persona: {
               type: "string",
-              description: "Persona to apply (e.g., 'charles' for British architect)",
+              description:
+                "Persona to apply (e.g., 'charles' for British architect)",
             },
           },
           required: ["task", "code"],
@@ -183,11 +184,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               enum: ["low", "medium", "high"],
               description: "How hard the model should think (low/medium/high)",
             },
-            provider: {
-              type: "string",
-              enum: ["xai", "openai"],
-              description: "AI provider to use (xai or openai)",
-            },
           },
           required: ["task", "code"],
         },
@@ -206,13 +202,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "array",
               items: {
                 type: "string",
-                enum: ["google", "xai", "arxiv", "wikipedia", "github", "stackexchange", "pubmed", "semantic_scholar"],
+                enum: [
+                  "google",
+                  "xai",
+                  "arxiv",
+                  "wikipedia",
+                  "github",
+                  "stackexchange",
+                  "pubmed",
+                  "semantic_scholar",
+                ],
               },
               description: "Search engines to use (default: google, xai)",
             },
             max_results_per_engine: {
               type: "number",
-              description: "Maximum results per search engine (1-20, default: 5)",
+              description:
+                "Maximum results per search engine (1-20, default: 5)",
             },
             deep_search: {
               type: "boolean",
@@ -259,11 +265,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               enum: ["low", "medium", "high"],
               description: "Reasoning effort level",
             },
-            provider: {
-              type: "string",
-              enum: ["xai", "openai"],
-              description: "AI provider to use",
-            },
           },
           required: ["persona_id", "query"],
         },
@@ -274,6 +275,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
+            persona_id: {
+              type: "string",
+              description:
+                "Persona to use: 'auto' (default) routes to best expert, or a specific id like 'charles', 'ada', 'xavier'",
+            },
             query: {
               type: "string",
               description: "Your question or request",
@@ -284,7 +290,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             hint: {
               type: "string",
-              description: "Optional hint for routing (e.g., 'architecture', 'security')",
+              description:
+                "Optional hint for routing (e.g., 'architecture', 'security')",
             },
             explain_routing: {
               type: "boolean",
@@ -298,7 +305,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             provider: {
               type: "string",
               enum: ["xai", "openai"],
-              description: "AI provider to use",
+              description:
+                "Optional provider override; defaults to persona preference or heuristic",
             },
           },
           required: ["query"],
@@ -312,12 +320,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             category: {
               type: "string",
-              enum: ["architecture", "algorithms", "security", "frontend", "backend", "data", "all"],
+              enum: [
+                "architecture",
+                "algorithms",
+                "security",
+                "frontend",
+                "backend",
+                "data",
+                "all",
+              ],
               description: "Filter personas by category",
             },
             verbose: {
               type: "boolean",
-              description: "Show detailed information including example queries",
+              description:
+                "Show detailed information including example queries",
             },
           },
           required: [],

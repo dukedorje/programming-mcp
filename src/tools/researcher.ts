@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { callAIProvider } from "../common/apiClient.js";
-import { getDefaultProvider, type AIProvider, type ReasoningEffort } from "../common/providerConfig.js";
+import {
+  chooseProvider,
+  type ReasoningEffort,
+} from "../common/providerConfig.js";
 import { RESEARCHER_SYSTEM_PROMPT } from "../prompts/researcherPrompts.js";
 
 /**
@@ -40,7 +43,18 @@ export interface ResearchResult {
 export const ResearcherToolSchema = z.object({
   query: z.string().min(1, "Research query is required."),
   search_engines: z
-    .array(z.enum(["google", "xai", "arxiv", "wikipedia", "github", "stackexchange", "pubmed", "semantic_scholar"]))
+    .array(
+      z.enum([
+        "google",
+        "xai",
+        "arxiv",
+        "wikipedia",
+        "github",
+        "stackexchange",
+        "pubmed",
+        "semantic_scholar",
+      ])
+    )
     .optional()
     .describe(
       "Search engines to use. Defaults to ['google', 'xai']. Available: google, xai, arxiv, wikipedia, github, stackexchange, pubmed, semantic_scholar"
@@ -54,22 +68,20 @@ export const ResearcherToolSchema = z.object({
   deep_search: z
     .boolean()
     .optional()
-    .describe("Whether to perform deep search by following links and extracting full content. Defaults to false."),
+    .describe(
+      "Whether to perform deep search by following links and extracting full content. Defaults to false."
+    ),
   include_academic: z
     .boolean()
     .optional()
-    .describe("Whether to prioritize academic sources (arxiv, pubmed, semantic_scholar). Defaults to false."),
+    .describe(
+      "Whether to prioritize academic sources (arxiv, pubmed, semantic_scholar). Defaults to false."
+    ),
   reasoning_effort: z
     .enum(["low", "medium", "high"])
     .optional()
     .describe(
       "How hard the AI should think when synthesizing results (low/medium/high). Defaults to high for research."
-    ),
-  provider: z
-    .enum(["xai", "openai"])
-    .optional()
-    .describe(
-      "AI provider to use for synthesis. Defaults to xai (grok-4) but can switch to openai (gpt-5)."
     ),
   citation_style: z
     .enum(["apa", "mla", "chicago", "ieee", "inline"])
@@ -78,22 +90,27 @@ export const ResearcherToolSchema = z.object({
 });
 
 // Search API implementations
-async function searchGoogle(query: string, maxResults: number): Promise<Source[]> {
+async function searchGoogle(
+  query: string,
+  maxResults: number
+): Promise<Source[]> {
   // Google Custom Search API implementation
   // Note: Requires GOOGLE_API_KEY and GOOGLE_CSE_ID environment variables
   const apiKey = process.env.GOOGLE_API_KEY;
   const cseId = process.env.GOOGLE_CSE_ID;
-  
+
   if (!apiKey || !cseId) {
     console.warn("Google Search API credentials not configured");
     return [];
   }
 
   try {
-    const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cseId}&q=${encodeURIComponent(query)}&num=${maxResults}`;
+    const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cseId}&q=${encodeURIComponent(
+      query
+    )}&num=${maxResults}`;
     const response = await fetch(url);
     const data = await response.json();
-    
+
     return (data.items || []).map((item: any, index: number) => ({
       id: `google-${index}`,
       title: item.title,
@@ -113,7 +130,7 @@ async function searchXAI(query: string, maxResults: number): Promise<Source[]> {
   // X.AI/Perplexity API implementation
   // This would integrate with Perplexity or X.AI's search capabilities
   const apiKey = process.env.XAI_API_KEY || process.env.PERPLEXITY_API_KEY;
-  
+
   if (!apiKey) {
     console.warn("X.AI/Perplexity API credentials not configured");
     return [];
@@ -124,7 +141,7 @@ async function searchXAI(query: string, maxResults: number): Promise<Source[]> {
     const response = await fetch("https://api.perplexity.ai/search", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -134,7 +151,7 @@ async function searchXAI(query: string, maxResults: number): Promise<Source[]> {
         include_sources: true,
       }),
     });
-    
+
     const data = await response.json();
     return (data.sources || []).map((source: any, index: number) => ({
       id: `xai-${index}`,
@@ -151,24 +168,35 @@ async function searchXAI(query: string, maxResults: number): Promise<Source[]> {
   }
 }
 
-async function searchArxiv(query: string, maxResults: number): Promise<Source[]> {
+async function searchArxiv(
+  query: string,
+  maxResults: number
+): Promise<Source[]> {
   // ArXiv API implementation for academic papers
   try {
-    const url = `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=${maxResults}`;
+    const url = `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(
+      query
+    )}&start=0&max_results=${maxResults}`;
     const response = await fetch(url);
     const text = await response.text();
-    
+
     // Simple XML parsing (in production, use a proper XML parser)
     const entries = text.match(/<entry>[\s\S]*?<\/entry>/g) || [];
-    
+
     return entries.map((entry, index) => {
-      const title = (entry.match(/<title>([\s\S]*?)<\/title>/) || [])[1]?.trim() || "";
-      const summary = (entry.match(/<summary>([\s\S]*?)<\/summary>/) || [])[1]?.trim() || "";
+      const title =
+        (entry.match(/<title>([\s\S]*?)<\/title>/) || [])[1]?.trim() || "";
+      const summary =
+        (entry.match(/<summary>([\s\S]*?)<\/summary>/) || [])[1]?.trim() || "";
       const id = (entry.match(/<id>([\s\S]*?)<\/id>/) || [])[1]?.trim() || "";
-      const authors = (entry.match(/<author>[\s\S]*?<name>([\s\S]*?)<\/name>[\s\S]*?<\/author>/g) || [])
-        .map(a => (a.match(/<name>([\s\S]*?)<\/name>/) || [])[1]?.trim())
+      const authors = (
+        entry.match(
+          /<author>[\s\S]*?<name>([\s\S]*?)<\/name>[\s\S]*?<\/author>/g
+        ) || []
+      )
+        .map((a) => (a.match(/<name>([\s\S]*?)<\/name>/) || [])[1]?.trim())
         .filter(Boolean);
-      
+
       return {
         id: `arxiv-${index}`,
         title,
@@ -186,17 +214,24 @@ async function searchArxiv(query: string, maxResults: number): Promise<Source[]>
   }
 }
 
-async function searchWikipedia(query: string, maxResults: number): Promise<Source[]> {
+async function searchWikipedia(
+  query: string,
+  maxResults: number
+): Promise<Source[]> {
   // Wikipedia API implementation
   try {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=${maxResults}`;
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
+      query
+    )}&format=json&srlimit=${maxResults}`;
     const response = await fetch(url);
     const data = await response.json();
-    
+
     return (data.query?.search || []).map((item: any, index: number) => ({
       id: `wiki-${index}`,
       title: item.title,
-      url: `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/ /g, "_"))}`,
+      url: `https://en.wikipedia.org/wiki/${encodeURIComponent(
+        item.title.replace(/ /g, "_")
+      )}`,
       snippet: item.snippet.replace(/<[^>]*>/g, ""), // Remove HTML tags
       searchEngine: "Wikipedia",
       timestamp: new Date().toISOString(),
@@ -208,18 +243,23 @@ async function searchWikipedia(query: string, maxResults: number): Promise<Sourc
   }
 }
 
-async function searchGitHub(query: string, maxResults: number): Promise<Source[]> {
+async function searchGitHub(
+  query: string,
+  maxResults: number
+): Promise<Source[]> {
   // GitHub API implementation for code/repository search
   const token = process.env.GITHUB_TOKEN;
-  
+
   try {
-    const headers: any = { "Accept": "application/vnd.github.v3+json" };
+    const headers: any = { Accept: "application/vnd.github.v3+json" };
     if (token) headers["Authorization"] = `token ${token}`;
-    
-    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=${maxResults}`;
+
+    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(
+      query
+    )}&sort=stars&order=desc&per_page=${maxResults}`;
     const response = await fetch(url, { headers });
     const data = await response.json();
-    
+
     return (data.items || []).map((repo: any, index: number) => ({
       id: `github-${index}`,
       title: repo.full_name,
@@ -236,13 +276,18 @@ async function searchGitHub(query: string, maxResults: number): Promise<Source[]
   }
 }
 
-async function searchStackExchange(query: string, maxResults: number): Promise<Source[]> {
+async function searchStackExchange(
+  query: string,
+  maxResults: number
+): Promise<Source[]> {
   // StackExchange API implementation
   try {
-    const url = `https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(query)}&site=stackoverflow&pagesize=${maxResults}`;
+    const url = `https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(
+      query
+    )}&site=stackoverflow&pagesize=${maxResults}`;
     const response = await fetch(url);
     const data = await response.json();
-    
+
     return (data.items || []).map((item: any, index: number) => ({
       id: `stack-${index}`,
       title: item.title,
@@ -262,16 +307,24 @@ async function searchStackExchange(query: string, maxResults: number): Promise<S
 // Citation formatter
 function formatCitation(source: Source, style: string): string {
   const date = new Date(source.timestamp).toLocaleDateString();
-  
+
   switch (style) {
     case "apa":
-      return `${source.authors?.join(", ") || source.domain}. (${date}). ${source.title}. Retrieved from ${source.url}`;
+      return `${source.authors?.join(", ") || source.domain}. (${date}). ${
+        source.title
+      }. Retrieved from ${source.url}`;
     case "mla":
-      return `${source.authors?.join(", ") || source.domain}. "${source.title}." Web. ${date}. <${source.url}>`;
+      return `${source.authors?.join(", ") || source.domain}. "${
+        source.title
+      }." Web. ${date}. <${source.url}>`;
     case "chicago":
-      return `${source.authors?.join(", ") || source.domain}. "${source.title}." Accessed ${date}. ${source.url}.`;
+      return `${source.authors?.join(", ") || source.domain}. "${
+        source.title
+      }." Accessed ${date}. ${source.url}.`;
     case "ieee":
-      return `[${source.id}] ${source.authors?.join(", ") || source.domain}, "${source.title}," ${source.searchEngine}, ${date}. [Online]. Available: ${source.url}`;
+      return `[${source.id}] ${source.authors?.join(", ") || source.domain}, "${
+        source.title
+      }," ${source.searchEngine}, ${date}. [Online]. Available: ${source.url}`;
     case "inline":
     default:
       return `[${source.title}](${source.url}) - ${source.searchEngine}`;
@@ -289,7 +342,6 @@ export async function runResearcherTool(
     deep_search = false,
     include_academic = false,
     reasoning_effort = "high",
-    provider = getDefaultProvider(),
     citation_style = "inline",
   } = args;
 
@@ -328,16 +380,24 @@ export async function runResearcherTool(
 
     // Create citations map
     const citations = new Map<string, Source>();
-    allSources.forEach(source => {
+    allSources.forEach((source) => {
       citations.set(source.id, source);
     });
 
     // Prepare source content for AI synthesis
-    const sourcesContent = allSources.map(source => 
-      `[${source.id}] ${source.title}\n${source.searchEngine} - ${source.url}\n${source.snippet}\n`
-    ).join("\n---\n");
+    const sourcesContent = allSources
+      .map(
+        (source) =>
+          `[${source.id}] ${source.title}\n${source.searchEngine} - ${source.url}\n${source.snippet}\n`
+      )
+      .join("\n---\n");
 
     // Call AI provider for synthesis
+    const selectedProvider = chooseProvider({
+      analysisType: "research",
+      reasoningEffort: reasoning_effort as ReasoningEffort,
+      textHint: query,
+    });
     const synthesisPrompt = `Research Query: ${query}
 
 Sources Found:
@@ -357,13 +417,13 @@ Citation Style: ${citation_style}`;
       code: "", // Not needed for research
       analysisType: "research",
       reasoningEffort: reasoning_effort as ReasoningEffort,
-      provider: provider as AIProvider,
+      provider: selectedProvider,
     });
 
     // Format citations
-    const formattedCitations = allSources.map(source => 
-      formatCitation(source, citation_style)
-    ).join("\n");
+    const formattedCitations = allSources
+      .map((source) => formatCitation(source, citation_style))
+      .join("\n");
 
     // Compile final result
     const result = `# Research Results for: "${query}"

@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { callAIProvider } from "../common/apiClient.js";
 import { callAIWithPersona } from "../common/personaClient.js";
-import { getDefaultProvider, type AIProvider, type ReasoningEffort } from "../common/providerConfig.js";
+import {
+  chooseProvider,
+  type ReasoningEffort,
+} from "../common/providerConfig.js";
 import { ARCHITECT_SYSTEM_PROMPT } from "../prompts/architectPrompts.js";
 
 /**
@@ -26,12 +29,6 @@ export const ArchitectToolSchema = z.object({
     .describe(
       "How hard the model should think (low/medium/high). High uses more reasoning tokens but provides better analysis."
     ),
-  provider: z
-    .enum(["xai", "openai"])
-    .optional()
-    .describe(
-      "AI provider to use. Defaults to xai (grok-4) but can switch to openai (gpt-5)."
-    ),
   persona: z
     .string()
     .optional()
@@ -40,18 +37,10 @@ export const ArchitectToolSchema = z.object({
     ),
 });
 
-
-
 export async function runArchitectTool(
   args: z.infer<typeof ArchitectToolSchema>
 ) {
-  const {
-    task,
-    code,
-    reasoning_effort = "high",
-    provider = getDefaultProvider(),
-    persona,
-  } = args;
+  const { task, code, reasoning_effort = "high", persona } = args;
 
   try {
     // Use persona-aware client if persona is specified
@@ -62,17 +51,23 @@ export async function runArchitectTool(
           code,
           analysisType: "comprehensive",
           reasoningEffort: reasoning_effort as ReasoningEffort,
-          provider: provider as AIProvider,
           personaId: persona,
         })
-      : await callAIProvider({
-          systemPrompt: ARCHITECT_SYSTEM_PROMPT,
-          task,
-          code,
-          analysisType: "comprehensive",
-          reasoningEffort: reasoning_effort as ReasoningEffort,
-          provider: provider as AIProvider,
-        });
+      : await (async () => {
+          const selectedProvider = chooseProvider({
+            analysisType: "comprehensive",
+            reasoningEffort: reasoning_effort as ReasoningEffort,
+            textHint: task,
+          });
+          return callAIProvider({
+            systemPrompt: ARCHITECT_SYSTEM_PROMPT,
+            task,
+            code,
+            analysisType: "comprehensive",
+            reasoningEffort: reasoning_effort as ReasoningEffort,
+            provider: selectedProvider,
+          });
+        })();
 
     return {
       content: [
@@ -87,9 +82,7 @@ export async function runArchitectTool(
       content: [
         {
           type: "text",
-          text: `${provider === "xai" ? "xAI" : "OpenAI"} Error: ${
-            error.message || error
-          }`,
+          text: `Architect Error: ${error.message || error}`,
         },
       ],
     };
