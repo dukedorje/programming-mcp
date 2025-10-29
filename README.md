@@ -50,8 +50,14 @@ Use git diffs to trigger code reviews.
 ### 🎭 Persona System
 
 Transform AI responses with distinct personalities:
-- **Charles**: Distinguished British architect with dry wit
-- **Ada**: Pragmatic performance engineer, metrics-focused
+- **Charles**: Pragmatic architect for startups/growth-stage (builds for 10x not 1000x, calls out over-engineering)
+- **Sterling**: Enterprise architect for legacy systems (zero-downtime, compliance, multi-team coordination)
+- **Ada**: Performance engineer focused on algorithms and optimization
+- **Atlas**: Backend/API strategist for contract-first development
+- **Hermes**: DevOps/SRE expert for pipelines and observability
+- **Sentinel**: Security architect for threat modeling and compliance
+- **Iris**: Frontend specialist for accessibility and design systems
+- **Xavier**: MVP-focused developer for shipping fast (KISS principle)
 
 ### 📊 Code Advice
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -63,6 +64,7 @@ import {
 
 // Import personas to auto-register
 import "./personas/charles/index.js";
+import "./personas/sterling/index.js";
 import "./personas/ada/index.js";
 import "./personas/xavier/index.js";
 import "./personas/atlas/index.js";
@@ -86,7 +88,7 @@ import "./personas/iris/index.js";
 const server = new Server(
   {
     name: "cursor-tools",
-    version: "2.0.1",
+    version: "2.0.5",
   },
   {
     capabilities: {
@@ -322,6 +324,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               enum: [
                 "architecture",
+                "enterprise",
                 "algorithms",
                 "security",
                 "frontend",

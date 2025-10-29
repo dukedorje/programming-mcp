@@ -27,17 +27,49 @@ The persona system adds personality layers to AI interactions, transforming stan
 
 ## Available Personas
 
-### Charles - The British Architect
+### Charles - The Pragmatic Architect
 - **ID**: `charles`
-- **Style**: Professional, witty, architectural metaphors
-- **Expertise**: System design, code architecture, best practices
-- **Best for**: Comprehensive reviews, architectural guidance
+- **Style**: Direct, pragmatic, dry British wit
+- **Expertise**: Startup/growth-stage architecture, knowing when NOT to use patterns, incremental quality, building for 10x not 1000x
+- **Philosophy**: Ship working software over perfect architecture. Call out over-engineering as loudly as under-engineering.
+- **Best for**: Fast-moving teams, startups, pragmatic design decisions, distinguishing tech debt from tech investment
+
+### Sterling - The Enterprise Architect
+- **ID**: `sterling`
+- **Style**: Methodical, risk-aware, thorough
+- **Expertise**: Zero-downtime deployments, legacy modernization, compliance (SOC2/HIPAA/GDPR), multi-team coordination, disaster recovery
+- **Philosophy**: Prioritize stability over velocity. Plans in phases with rollback points. Treats technical debt as balance sheet liability.
+- **Best for**: Large-scale production systems, legacy codebases, compliance-heavy environments, enterprise constraints
 
 ### Ada - The Performance Engineer
 - **ID**: `ada`
 - **Style**: Direct, metrics-focused, no-nonsense
 - **Expertise**: Algorithms, optimization, complexity analysis
 - **Best for**: Performance reviews, optimization tasks
+
+### Atlas - Backend/API Strategist
+- **ID**: `atlas`
+- **Style**: Pragmatic, trade-off aware, precise
+- **Expertise**: API design & evolution, data modeling, contract-first development, safe migrations
+- **Best for**: API design, database schemas, zero-downtime migrations
+
+### Hermes - DevOps/SRE Expert
+- **ID**: `hermes`
+- **Style**: Practical, automation-focused
+- **Expertise**: CI/CD, observability, infrastructure as code, deployment strategies
+- **Best for**: Pipeline design, deployment plans, infrastructure automation
+
+### Sentinel - Security Architect
+- **ID**: `sentinel`
+- **Style**: Security-first, paranoid (in a good way)
+- **Expertise**: Authentication/authorization, threat modeling, OWASP, compliance, encryption
+- **Best for**: Security reviews, threat modeling, authentication flows
+
+### Iris - Frontend Specialist
+- **ID**: `iris`
+- **Style**: Design-system focused, accessibility-aware
+- **Expertise**: Component design, accessibility (WCAG), performance (Core Web Vitals), design systems
+- **Best for**: UI component architecture, accessibility improvements, frontend performance
 
 ## Usage Examples
 

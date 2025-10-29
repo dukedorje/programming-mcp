@@ -14,6 +14,7 @@ export const DiscoverToolSchema = z.object({
   category: z
     .enum([
       "architecture",
+      "enterprise",
       "algorithms",
       "security",
       "frontend",
@@ -47,11 +48,18 @@ interface PersonaInfo {
 function getExampleQueries(personaId: string): string[] {
   const examples: Record<string, string[]> = {
     charles: [
-      "How should I structure my microservices architecture?",
-      "What's the best pattern for this use case?",
-      "Review my system design for scalability",
-      "How do I reduce coupling between these modules?",
-      "What's causing this technical debt?",
+      "How should I structure this for a startup moving fast?",
+      "What's the simplest pattern that works here?",
+      "Review my design - what's overkill vs what actually matters?",
+      "How do I reduce coupling without over-engineering?",
+      "Is this tech debt worth paying down now?",
+    ],
+    sterling: [
+      "Plan a zero-downtime migration for this legacy system",
+      "Design a phased rollout with rollback plan for this change",
+      "How do I ensure SOC2/HIPAA compliance for this feature?",
+      "Architecture for multi-team coordination with 50+ engineers",
+      "Backward compatibility strategy for this breaking change",
     ],
     ada: [
       "How can I optimize this algorithm?",
@@ -126,6 +134,15 @@ function getExampleQueries(personaId: string): string[] {
 function getPersonaCategory(persona: any): string {
   const expertiseStr = persona.traits?.expertise?.join(" ").toLowerCase() || "";
 
+  // Check for enterprise first (more specific)
+  if (
+    expertiseStr.includes("enterprise") ||
+    expertiseStr.includes("legacy") ||
+    expertiseStr.includes("zero-downtime") ||
+    expertiseStr.includes("compliance")
+  ) {
+    return "enterprise";
+  }
   if (
     expertiseStr.includes("architecture") ||
     expertiseStr.includes("system design")
